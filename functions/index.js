@@ -53,15 +53,36 @@ async function getUserById (id) {
     })
 }
 
+async function addUser (name) {
+  const docRef = db.collection('users').doc()
+  try {
+    docRef.set({
+      name: name,
+      id: '87654321',
+      email: 'mompi@getUserByEmail.com'
+    })
+    return true
+    // return Promise.all(setAda)
+  } catch (error) {
+    return false
+  }
+}
+
 // Setup conversation
 const app = conversation({
   clientId: functions.config().client.id
 })
 
 // Handlers
-app.handle(HANDLERS.createUser, (conv) => {
+app.handle(HANDLERS.createUser, async (conv) => {
   logJson(conv)
-  conv.add('Registro completado!')
+  const name = conv.scene.slots.userName.value // validate
+  const response = await addUser(name)
+  logJson(response)
+  if (response) {
+    // conv.scene.next.name = 'HelloWord'
+    conv.add('El usuario fue creado exitosamente!')
+  }
 })
 
 app.handle(HANDLERS.validateUserByEmail, (conv) => {
@@ -69,9 +90,10 @@ app.handle(HANDLERS.validateUserByEmail, (conv) => {
   const response = getUserByEmail(email)
   logJson(response)
   if (!response) {
-    // response the handler false
+    conv.scene.next.name = 'UserOnBoarding'
+  } else {
+    conv.add('El usuario ya está registrado!')
   }
-  // response the handler ok
 })
 
 app.handle(HANDLERS.validateUserById, async (conv) => {
@@ -82,7 +104,7 @@ app.handle(HANDLERS.validateUserById, async (conv) => {
   if (!response) {
     conv.scene.next.name = 'UserOnBoarding'
   } else {
-    conv.add('El usuario está registrado!')
+    conv.add('El usuario ya está registrado!')
   }
 })
 
