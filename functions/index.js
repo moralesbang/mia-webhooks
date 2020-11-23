@@ -8,6 +8,8 @@ const HANDLERS = {
 
 // Utils
 const logJson = value => console.log('JSON LOGGED 👀 -->', JSON.stringify(value))
+
+// Setup
 const app = conversation({
   clientId: functions.config().client.id
 })
