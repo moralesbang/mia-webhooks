@@ -9,41 +9,41 @@ const HANDLERS = {
 }
 
 // Firebase
-const admin = require('firebase-admin');
-const functions = require('firebase-functions');
-admin.initializeApp(functions.config().firebase);
-let db = admin.firestore();
+const admin = require('firebase-admin')
+const functions = require('firebase-functions')
+admin.initializeApp(functions.config().firebase)
+const db = admin.firestore()
 
-async function getUserByEmail(email, name) {
-  //get user by email
-  let usersRef = db.collection('users');
-  let query = usersRef.where('email', '==', email).where('name', '==', name);
+function getUserByEmail (email, name) {
+  // get user by email
+  const usersRef = db.collection('users')
+  const query = usersRef.where('email', '==', email).where('name', '==', name)
   query.get().then(snapshot => {
     if (snapshot.empty) {
-      logJson('No matching user');
-      return;
+      logJson('No matching user')
+      return
     }
-    return true;
+    return true
   })
-  .catch(() => {
-    logJson('Error getting user');
-  });
+    .catch(() => {
+      logJson('Error getting user')
+    })
 }
 
-async function getUserById(id) {
-  //get user by email
-  let usersRef = db.collection('users');
-  let query = usersRef.where('id', '==', id);
+function getUserById (id) {
+  // get user by email
+  const usersRef = db.collection('users')
+  const query = usersRef.where('id', '==', id)
   query.get().then(snapshot => {
     if (snapshot.empty) {
-      logJson('No matching user');
-      return;
+      logJson('No matching user')
+      return
     }
-    return true;
+    return true
   })
-  .catch(() => {
-    logJson('Error getting user');
-  });
+    .catch(() => {
+      logJson('Error getting user')
+    })
 }
 
 // Utils
@@ -61,28 +61,28 @@ app.handle(HANDLERS.createUser, conv => {
 })
 
 app.handle(HANDLERS.validateUserByEmail, conv => {
-  logJson(cov);
-  const userName = conv.user.name;
-  const email = conv.user.email;
-  let response = await getUserByEmail(email, userName);
+  logJson(conv)
+  const userName = conv.user.name
+  const email = conv.user.email
+  const response = getUserByEmail(email, userName)
   if (!response) {
-    //response the handler false
+    // response the handler false
   }
-  //response the handler ok
+  // response the handler ok
 })
 
 app.handle(HANDLERS.validateUserById, conv => {
-  logJson(cov);
-  const id = conv.user.id; //validate
-  let response = await getUserById(id);
+  logJson(conv)
+  const id = conv.user.id // validate
+  const response = getUserById(id)
   if (!response) {
-    //response the handler false
+    // response the handler false
   }
-  //response the handler ok
+  // response the handler ok
 })
 
-app.handle('getting', conv => {
-  logJson(cov);
+app.handle('greeting', conv => {
+  logJson(conv)
 })
 
 exports.fulfillment = functions.https.onRequest(app)
