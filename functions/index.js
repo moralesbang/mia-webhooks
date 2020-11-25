@@ -48,6 +48,17 @@ async function getUserByEmail (email) {
   }
 }
 
+async function getUserById (id) {
+  const query = await db.collection('users').where('id', '==', id).get()
+  try {
+    const snapshot = query.docs[0]
+    const data = snapshot.data()
+    return data
+  } catch (error) {
+    return null
+  }
+}
+
 // Handlers
 app.handle(HANDLERS.validateUserByEmail, async (conv) => {
   const email = conv.user.params.tokenPayload.email
@@ -55,7 +66,8 @@ app.handle(HANDLERS.validateUserByEmail, async (conv) => {
   if (response) {
     conv.add(response.plate)
   } else {
-    conv.add('Usuario no registrado')
+    conv.add('Usuario no registrado ')
+    conv.scene.next.name = 'CompleteProfile'
   }
   logJson(response)
 })
@@ -64,32 +76,24 @@ app.handle(HANDLERS.validateUserById, async (conv) => {
   logJson(conv)
   const id = conv.scene.slots.userId.value // validate
   logJson(id)
-  // const response = await getUserById(id)
-  // logJson(response)
-  // if (!response) {
-  //   // conv.scene.next.name = 'UserOnBoarding'
-  // } else {
-  //   conv.add('El usuario ya está registrado!')
-  // }
+  const response = await getUserById(id)
+  if (response) {
+    conv.add(response.name)
+  } else {
+    conv.add('Usuario no registrado')
+  }
+  logJson(response)
 })
 
 app.handle(HANDLERS.createUser, async (conv) => {
   logJson(conv)
   // original data
-  // const userData = {
-  //   name: conv.scene.slots.userName.value,
-  //   id: conv.scene.slots.userId.value,
-  //   email: conv.scene.slots.email.value,
-  //   insurance: conv.scene.slots.insurance.value,
-  //   plate: conv.scene.slots.plate.value,
-  // }
-  // mock data
   const userData = {
-    name: 'Carlos Duque',
-    id: '1234567',
-    email: 'carlosduque@udea.edu.co',
-    insurance: 'sura',
-    plate: 'abc123'
+    name: conv.user.params.tokenPayload.name,
+    id: conv.session.params.id,
+    email: conv.user.params.tokenPayload.email,
+    insurance: conv.session.params.plate,
+    plate: conv.session.params.insurance
   }
   const response = await addUser(userData)
   if (response) {
@@ -97,7 +101,7 @@ app.handle(HANDLERS.createUser, async (conv) => {
     // validateInsurance(userData, conv)
   } else {
     conv.add('No fue posible crear el usuario')
-    conv.scene.next.name = 'ErrorScene'
+    // conv.scene.next.name = 'ErrorScene'
   }
 })
 
