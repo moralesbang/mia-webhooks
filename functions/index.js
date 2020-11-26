@@ -63,7 +63,7 @@ async function getUserById (id) {
 }
 
 // salesforce functions
-async function validateInsurance (userData, conv) {
+async function validateInsurance (userData) {
   const options = {
     method: 'GET',
     json: true,
@@ -74,26 +74,11 @@ async function validateInsurance (userData, conv) {
         'Bearer 00D4W000008J4iL!AQsAQMpdfU9rc2YyISEWE7S7A9BvJbodIqE4Eg4irp2a8MPBa5.iOUopFAyx6qFRpIqECisdQ4C56oSL6hqKXiPlCTyZkv9I'
     }
   }
-  function callback (error, response) {
-    if (!error && response.statusCode === 200) {
-      logJson(response.body)
-      const insurance = response.body.records.find(
-        (item) => item.Name === userData.email
-      )
-      logJson(insurance)
-      if (insurance) {
-        conv.scene.next.name = 'ServiceSelection'
-      } else {
-        conv.add(
-          'El usuario no tiene un seguro activo con: ' +
-            userData.insurance +
-            ' '
-        )
-        conv.scene.next.name = 'EndScene'
-      }
-    }
-  }
-  request(options, callback)
+  const response = await request(options, () => {})
+  const insurance = response.records.find(
+    (item) => item.Name === userData.email
+  )
+  return insurance
 }
 
 // Handlers
@@ -104,7 +89,16 @@ app.handle(HANDLERS.validateUserByEmail, async (conv) => {
     conv.add(
       'El usuario con email: ' + response.email + 'ya está registrado! '
     )
-    validateInsurance(response, conv)
+    const insurance = await validateInsurance(response)
+    logJson(insurance)
+    if (insurance) {
+      conv.scene.next.name = 'ServiceSelection'
+    } else {
+      conv.add(
+        'El usuario no tiene un seguro activo con: ' + response.insurance + ' '
+      )
+      conv.scene.next.name = 'EndScene'
+    }
   } else {
     conv.add('Usuario no registrado ')
     conv.scene.next.name = 'CompleteProfile'
@@ -116,7 +110,7 @@ app.handle(HANDLERS.validateUserById, async (conv) => {
   const response = await getUserById(id)
   if (response) {
     conv.add('El usuario con ID: ' + response.id + 'ya está registrado! ')
-    validateInsurance(response, conv)
+    validateInsurance(response)
   } else {
     conv.add('Usuario no registrado ')
     conv.scene.next.name = 'CompleteProfile'
@@ -140,7 +134,7 @@ app.handle(HANDLERS.createUser, async (conv) => {
   const response = await addUser(userData)
   if (response) {
     conv.add('Usuario creado exitosamente! ')
-    validateInsurance(response, conv)
+    validateInsurance(response)
   } else {
     conv.add('No fue posible crear el usuario, ')
     conv.scene.next.name = 'ErrorScene'
