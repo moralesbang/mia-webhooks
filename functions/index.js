@@ -2,7 +2,8 @@
 const HANDLERS = {
   createUser: 'create_user',
   validateUserByEmail: 'validate_email',
-  validateUserById: 'validate_id'
+  validateUserById: 'validate_id',
+  createReport: 'create_report'
 }
 
 // Utils
@@ -63,15 +64,14 @@ async function getUserById (id) {
 }
 
 // salesforce functions
-async function validateInsurance (userData) {
+async function validateInsurance (userData, accessToken) {
   const options = {
     method: 'GET',
     json: true,
     url:
       'https://university3-dev-ed.my.salesforce.com/services/data/v47.0/query/?q=SELECT+name+from+Account',
     headers: {
-      Authorization:
-        'Bearer 00D4W000008J4iL!AQsAQMpdfU9rc2YyISEWE7S7A9BvJbodIqE4Eg4irp2a8MPBa5.iOUopFAyx6qFRpIqECisdQ4C56oSL6hqKXiPlCTyZkv9I'
+      Authorization: 'Bearer ' + accessToken
     }
   }
   const response = await request(options, () => {})
@@ -79,6 +79,25 @@ async function validateInsurance (userData) {
     (item) => item.Name === userData.email
   )
   return insurance
+}
+
+async function getAccessToken () {
+  const params = {
+    grant_type: 'password',
+    client_id:
+      '3MVG9l2zHsylwlpSPD4Hw7reFXjppFjuUYNA20JlvD2kyYJJFEpwwBlKJno6Vtn8_AZmC4F7b9qpjZ9XFOT72',
+    client_secret:
+      '6819F34AF24378D0E36E4936C34FBBD193C77C0B02FF75A8A45D9BF74F33D2CF',
+    username: 'jupabass89@gmail.com',
+    password: '1989Juan*L8BkqZ7LsKBAFoaaNEpgvnOp'
+  }
+  const options = {
+    method: 'POST',
+    json: true,
+    url: `https://university3-dev-ed.my.salesforce.com/services/oauth2/token?grant_type=${params.grant_type}&client_id=${params.client_id}&client_secret=${params.client_secret}&username=${params.username}&password=${params.password}`
+  }
+  const response = await request(options, () => {})
+  return response.access_token
 }
 
 // Handlers
@@ -89,7 +108,9 @@ app.handle(HANDLERS.validateUserByEmail, async (conv) => {
     conv.add(
       'El usuario con email: ' + response.email + 'ya está registrado! '
     )
-    const insurance = await validateInsurance(response)
+    const accessToken = await getAccessToken()
+    logJson(accessToken)
+    const insurance = await validateInsurance(response, accessToken)
     logJson(insurance)
     if (insurance) {
       conv.scene.next.name = 'ServiceSelection'
@@ -140,5 +161,30 @@ app.handle(HANDLERS.createUser, async (conv) => {
     conv.scene.next.name = 'ErrorScene'
   }
 })
+
+// app.handle(HANDLERS.createReport, async (conv) => {
+//   const email = conv.user.params.tokenPayload.email
+//     ? conv.user.params.tokenPayload.email
+//     : conv.session.params.email
+//   const name = conv.user.params.tokenPayload.name
+//     ? conv.user.params.tokenPayload.name
+//     : conv.session.params.name
+//   const location = conv.user.params.tokenPayload.location
+//   const timestamp = conv.user.params.tokenPayload.timestamp
+
+//   const reportData = {
+//     name,
+//     email,
+//     service_type: conv.session.params.service_type,
+//     description: conv.session.params.description
+//   }
+//   const response = await createReport(reportData)
+//   if (response) {
+//     conv.add('Reporte creado exitosamente! ')
+//   } else {
+//     conv.add('No fue posible crear el reporte, ')
+//     conv.scene.next.name = 'ErrorScene'
+//   }
+// })
 
 exports.fulfillment = functions.https.onRequest(app)
