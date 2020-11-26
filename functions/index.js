@@ -64,37 +64,36 @@ async function getUserById (id) {
 
 // salesforce functions
 async function validateInsurance (userData, conv) {
-  logJson(conv)
-  // salesforce integration
-  //
-
   const options = {
     method: 'GET',
     json: true,
-    url: 'https://university3-dev-ed.my.salesforce.com/services/data/v47.0/query/?q=SELECT+name+from+Account',
+    url:
+      'https://university3-dev-ed.my.salesforce.com/services/data/v47.0/query/?q=SELECT+name+from+Account',
     headers: {
-      Authorization: 'Bearer 00D4W000008J4iL!AQsAQMpdfU9rc2YyISEWE7S7A9BvJbodIqE4Eg4irp2a8MPBa5.iOUopFAyx6qFRpIqECisdQ4C56oSL6hqKXiPlCTyZkv9I'
+      Authorization:
+        'Bearer 00D4W000008J4iL!AQsAQMpdfU9rc2YyISEWE7S7A9BvJbodIqE4Eg4irp2a8MPBa5.iOUopFAyx6qFRpIqECisdQ4C56oSL6hqKXiPlCTyZkv9I'
     }
   }
-
   function callback (error, response) {
     if (!error && response.statusCode === 200) {
       logJson(response.body)
+      const insurance = response.body.records.find(
+        (item) => item.Name === userData.email
+      )
+      logJson(insurance)
+      if (insurance) {
+        conv.scene.next.name = 'ServiceSelection'
+      } else {
+        conv.add(
+          'El usuario no tiene un seguro activo con: ' +
+            userData.insurance +
+            ' '
+        )
+        conv.scene.next.name = 'EndScene'
+      }
     }
   }
-
   request(options, callback)
-
-  const insurance = true
-
-  if (insurance) {
-    conv.scene.next.name = 'ServiceSelection'
-  } else {
-    conv.add(
-      'El usuario no tiene un seguro activo con: ' + userData.insurance + ' '
-    )
-    conv.scene.next.name = 'EndScene'
-  }
 }
 
 // Handlers
