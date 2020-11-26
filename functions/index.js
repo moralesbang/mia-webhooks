@@ -66,7 +66,6 @@ async function getUserById (id) {
 // salesforce functions
 async function validateInsurance (userData) {
   const accessToken = await getAccessToken()
-  logJson(accessToken)
   const options = {
     method: 'GET',
     json: true,
@@ -77,12 +76,8 @@ async function validateInsurance (userData) {
     }
   }
   const response = await request(options, () => {})
-  const user = response.records.find(
-    (item) => item.Name === userData.email
-  )
-  logJson(user)
+  const user = response.records.find((item) => item.Name === userData.email)
   const userId = user.attributes.url.replace('/services/data/v47.0/sobjects/Account/', '')
-  logJson(userId)
   return { userEmail: user.Name, userId }
 }
 
@@ -105,28 +100,29 @@ async function getAccessToken () {
   return response.access_token
 }
 
-async function createReport (reportData, serviceType) {
+async function createReport (reportData) {
+  const accessToken = await getAccessToken()
   const userData = await getUserByEmail(reportData.email)
-  const insuranceId = await validateInsurance(userData).userId
-
-  logJson(insuranceId)
-  logJson(serviceType)
-
-  // const params = {
-  //   grant_type: 'password',
-  //   client_id:
-  //     '3MVG9l2zHsylwlpSPD4Hw7reFXjppFjuUYNA20JlvD2kyYJJFEpwwBlKJno6Vtn8_AZmC4F7b9qpjZ9XFOT72',
-  //   client_secret:
-  //     '6819F34AF24378D0E36E4936C34FBBD193C77C0B02FF75A8A45D9BF74F33D2CF',
-  //   username: 'jupabass89@gmail.com',
-  //   password: '1989Juan*L8BkqZ7LsKBAFoaaNEpgvnOp'
-  // }
-  // const options = {
-  //   method: 'POST',
-  //   json: true,
-  //   url: `https://university3-dev-ed.my.salesforce.com/services/oauth2/token?grant_type=${params.grant_type}&client_id=${params.client_id}&client_secret=${params.client_secret}&username=${params.username}&password=${params.password}`
-  // }
-  // return await request(options, () => {})
+  const AccountId = await validateInsurance(userData).userId
+  logJson(AccountId)
+  const body = {
+    AccountId,
+    Description: reportData.description,
+    Subject: reportData.service_type,
+    Priority: 'High',
+    Latitude__c: reportData.latitude,
+    Longitude__c: reportData.longitude
+  }
+  const options = {
+    method: 'POST',
+    json: true,
+    body,
+    url: 'https://university3-dev-ed.my.salesforce.com/services/data/v50.0/sobjects/Case/',
+    headers: {
+      Authorization: 'Bearer ' + accessToken
+    }
+  }
+  return await request(options, () => {})
 }
 
 // Handlers
@@ -138,7 +134,6 @@ app.handle(HANDLERS.validateUserByEmail, async (conv) => {
       'El usuario con email: ' + response.email + 'ya está registrado! '
     )
     const insurance = await validateInsurance(response)
-    logJson(insurance)
     if (insurance) {
       conv.scene.next.name = 'ServiceSelection'
     } else {
@@ -153,17 +148,27 @@ app.handle(HANDLERS.validateUserByEmail, async (conv) => {
   }
 })
 
-// app.handle(HANDLERS.validateUserById, async (conv) => {
-//   const id = conv.session.params.id
-//   const response = await getUserById(id)
-//   if (response) {
-//     conv.add('El usuario con ID: ' + response.id + 'ya está registrado! ')
-//     validateInsurance(response)
-//   } else {
-//     conv.add('Usuario no registrado ')
-//     conv.scene.next.name = 'CompleteProfile'
-//   }
-// })
+app.handle(HANDLERS.validateUserById, async (conv) => {
+  const id = conv.session.params.id
+  const response = await getUserById(id)
+  if (response) {
+    conv.add(
+      'El usuario con id: ' + response.id + 'ya está registrado! '
+    )
+    const insurance = await validateInsurance(response)
+    if (insurance) {
+      conv.scene.next.name = 'ServiceSelection'
+    } else {
+      conv.add(
+        'El usuario no tiene un seguro activo con: ' + response.insurance + ' '
+      )
+      conv.scene.next.name = 'EndScene'
+    }
+  } else {
+    conv.add('Usuario no registrado ')
+    conv.scene.next.name = 'CompleteProfile'
+  }
+})
 
 app.handle(HANDLERS.createUser, async (conv) => {
   const email = conv.user.params.tokenPayload.email
@@ -176,13 +181,15 @@ app.handle(HANDLERS.createUser, async (conv) => {
     name,
     email,
     id: conv.session.params.id,
-    insurance: conv.session.params.plate,
-    plate: conv.session.params.insurance
+    insurance: conv.session.params.insurance,
+    plate: conv.session.params.plate
   }
   const response = await addUser(userData)
+  logJson(response)
   if (response) {
     conv.add('Usuario creado exitosamente! ')
-    const insurance = await validateInsurance(response)
+    const insurance = await validateInsurance(userData)
+    logJson(insurance)
     if (insurance) {
       conv.scene.next.name = 'ServiceSelection'
     } else {
@@ -198,32 +205,25 @@ app.handle(HANDLERS.createUser, async (conv) => {
 })
 
 app.handle(HANDLERS.createReport, async (conv) => {
-  logJson(conv)
-  const service = conv.session.params.service
-  // const email = conv.user.params.tokenPayload.email
-  //   ? conv.user.params.tokenPayload.email
-  //   : conv.session.params.email
-  // const name = conv.user.params.tokenPayload.name
-  //   ? conv.user.params.tokenPayload.name
-  //   : conv.session.params.name
-  // const timestamp = conv.user.lastSeenTime
+  const email = conv.user.params.tokenPayload.email
+    ? conv.user.params.tokenPayload.email
+    : conv.session.params.email
   // const reportData = {
-  //   name,
   //   email,
-  //   timestamp,
-  //   service_type: conv.session.params.service_type,
+  //   service_type: conv.session.params.service,
   //   description: conv.session.params.description,
-  //   location: conv.device.location
+  //   latitude: conv.device.latitude,
+  //   longitude: conv.device.longitude
   // }
   const reportData = {
-    name: 'Test name',
-    email: 'juan.gomez125@udea.edu.co',
-    timestamp: '2020/09/12',
-    service_type: 'siniestro',
-    description: 'me choqué y me partí el pie',
-    location: 'u de a'
+    email,
+    service_type: 'Siniestro', // validar procedencia
+    description: conv.session.params.description,
+    latitude: '12.43', // validar procedencia
+    longitude: '-13.54' // validar procedencia
   }
-  const response = await createReport(reportData, service)
+  const response = await createReport(reportData)
+  logJson(response)
   if (response) {
     conv.add('Reporte creado exitosamente! ')
   } else {
