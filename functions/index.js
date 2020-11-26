@@ -68,22 +68,22 @@ async function validateInsurance (userData, conv) {
   // salesforce integration
   //
 
-  request(
-    {
-      url: 'https://university3-dev-ed.my.salesforce.com/services/data/v47.0/query/?q=SELECT+name+from+Account',
-      headers: {
-        Authorization: 'Bearer 00D4W000008J4iL!AQsAQMpdfU9rc2YyISEWE7S7A9BvJbodIqE4Eg4irp2a8MPBa5.iOUopFAyx6qFRpIqECisdQ4C56oSL6hqKXiPlCTyZkv9I'
-      },
-      rejectUnauthorized: false
-    },
-    function (err, res) {
-      if (err) {
-        logJson(err)
-      } else {
-        logJson(JSON.parse(res.body).records[3])
-      }
+  const options = {
+    method: 'GET',
+    json: true,
+    url: 'https://university3-dev-ed.my.salesforce.com/services/data/v47.0/query/?q=SELECT+name+from+Account',
+    headers: {
+      Authorization: 'Bearer 00D4W000008J4iL!AQsAQMpdfU9rc2YyISEWE7S7A9BvJbodIqE4Eg4irp2a8MPBa5.iOUopFAyx6qFRpIqECisdQ4C56oSL6hqKXiPlCTyZkv9I'
     }
-  )
+  }
+
+  function callback (error, response) {
+    if (!error && response.statusCode === 200) {
+      logJson(response.body)
+    }
+  }
+
+  request(options, callback)
 
   const insurance = true
 
