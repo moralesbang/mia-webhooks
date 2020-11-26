@@ -9,12 +9,7 @@ const HANDLERS = {
 const logJson = (value) =>
   console.log('JSON LOGGED 👀 -->', JSON.stringify(value))
 
-// const isEmpty = async (object) => {
-//   if (!object || (Object.keys(object).length === 0 && object.constructor === Object)) {
-//     return true
-//   }
-//   return false
-// }
+const request = require('request-promise')
 
 // Firebase SetUp
 const admin = require('firebase-admin')
@@ -72,14 +67,32 @@ async function validateInsurance (userData, conv) {
   logJson(conv)
   // salesforce integration
   //
+
+  request(
+    {
+      url: 'https://university3-dev-ed.my.salesforce.com/services/data/v47.0/query/?q=SELECT+name+from+Account',
+      headers: {
+        Authorization: 'Bearer 00D4W000008J4iL!AQsAQMpdfU9rc2YyISEWE7S7A9BvJbodIqE4Eg4irp2a8MPBa5.iOUopFAyx6qFRpIqECisdQ4C56oSL6hqKXiPlCTyZkv9I'
+      },
+      rejectUnauthorized: false
+    },
+    function (err, res) {
+      if (err) {
+        logJson(err)
+      } else {
+        logJson(JSON.parse(res.body).records[3])
+      }
+    }
+  )
+
   const insurance = true
-  //
-  //
 
   if (insurance) {
     conv.scene.next.name = 'ServiceSelection'
   } else {
-    conv.add('El usuario no tiene un seguro activo con: ' + userData.insurance + ' ')
+    conv.add(
+      'El usuario no tiene un seguro activo con: ' + userData.insurance + ' '
+    )
     conv.scene.next.name = 'EndScene'
   }
 }
@@ -112,8 +125,12 @@ app.handle(HANDLERS.validateUserById, async (conv) => {
 })
 
 app.handle(HANDLERS.createUser, async (conv) => {
-  const email = conv.user.params.tokenPayload.email ? conv.user.params.tokenPayload.email : conv.session.params.email
-  const name = conv.user.params.tokenPayload.name ? conv.user.params.tokenPayload.name : conv.session.params.name
+  const email = conv.user.params.tokenPayload.email
+    ? conv.user.params.tokenPayload.email
+    : conv.session.params.email
+  const name = conv.user.params.tokenPayload.name
+    ? conv.user.params.tokenPayload.name
+    : conv.session.params.name
   const userData = {
     name,
     email,
