@@ -6,6 +6,8 @@ const HANDLERS = {
   createReport: 'create_report'
 }
 
+const END_CONVERSATION_SCENE = 'actions.page.END_CONVERSATION'
+
 // Utils
 const logJson = (value) =>
   console.log('JSON LOGGED 👀 -->', JSON.stringify(value))
@@ -77,8 +79,13 @@ async function validateInsurance (userData) {
   }
   const response = await request(options, () => {})
   const user = response.records.find((item) => item.Name === userData.email)
-  const userId = user.attributes.url.replace('/services/data/v47.0/sobjects/Account/', '')
-  return { userEmail: user.Name, userId }
+
+  if (user) {
+    const userId = user.attributes.url.replace('/services/data/v47.0/sobjects/Account/', '')
+    return { userEmail: user.Name, userId }
+  }
+
+  return null
 }
 
 async function getAccessToken () {
@@ -140,7 +147,7 @@ app.handle(HANDLERS.validateUserByEmail, async (conv) => {
       conv.add(
         'El usuario no tiene un seguro activo con: ' + response.insurance + ' '
       )
-      conv.scene.next.name = 'EndScene'
+      conv.scene.next.name = END_CONVERSATION_SCENE
     }
   } else {
     conv.add('Usuario no registrado ')
@@ -162,7 +169,7 @@ app.handle(HANDLERS.validateUserById, async (conv) => {
       conv.add(
         'El usuario no tiene un seguro activo con: ' + response.insurance + ' '
       )
-      conv.scene.next.name = 'EndScene'
+      conv.scene.next.name = END_CONVERSATION_SCENE
     }
   } else {
     conv.add('Usuario no registrado ')
@@ -196,7 +203,7 @@ app.handle(HANDLERS.createUser, async (conv) => {
       conv.add(
         'El usuario no tiene un seguro activo con: ' + response.insurance + ' '
       )
-      conv.scene.next.name = 'EndScene'
+      conv.scene.next.name = END_CONVERSATION_SCENE
     }
   } else {
     conv.add('No fue posible crear el usuario, ')
