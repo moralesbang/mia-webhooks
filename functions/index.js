@@ -3,7 +3,8 @@ const HANDLERS = {
   createUser: 'create_user',
   validateUserByEmail: 'validate_email',
   validateUserById: 'validate_id',
-  createReport: 'create_report'
+  createReport: 'create_report',
+  selectReporter: 'select_reporter'
 }
 
 const END_CONVERSATION_SCENE = 'actions.page.END_CONVERSATION'
@@ -237,6 +238,11 @@ app.handle(HANDLERS.createReport, async (conv) => {
     conv.add('No fue posible crear el reporte, ')
     conv.scene.next.name = 'ErrorScene'
   }
+})
+
+app.handle(HANDLERS.selectReporter, conv => {
+  const userName = conv.user.params.tokenPayload.given_name
+  conv.add(`¿Eres ${userName}?`)
 })
 
 exports.fulfillment = functions.https.onRequest(app)
