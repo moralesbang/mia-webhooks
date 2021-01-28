@@ -7,7 +7,10 @@ const HANDLERS = {
   selectReporter: 'select_reporter'
 }
 
-const END_CONVERSATION_SCENE = 'actions.page.END_CONVERSATION'
+const SCENES = {
+  endConversation: 'actions.page.END_CONVERSATION',
+  selectServiceType: 'SelectServiceType'
+}
 
 // Utils
 const logJson = (value) =>
@@ -143,12 +146,12 @@ app.handle(HANDLERS.validateUserByEmail, async (conv) => {
     )
     const insurance = await validateInsurance(response)
     if (insurance) {
-      conv.scene.next.name = 'ServiceSelection'
+      conv.scene.next.name = SCENES.selectServiceType
     } else {
       conv.add(
         'El usuario no tiene un seguro activo con: ' + response.insurance + ' '
       )
-      conv.scene.next.name = END_CONVERSATION_SCENE
+      conv.scene.next.name = SCENES.endConversation
     }
   } else {
     conv.add('Usuario no registrado ')
@@ -165,12 +168,12 @@ app.handle(HANDLERS.validateUserById, async (conv) => {
     )
     const insurance = await validateInsurance(response)
     if (insurance) {
-      conv.scene.next.name = 'ServiceSelection'
+      conv.scene.next.name = SCENES.selectServiceType
     } else {
       conv.add(
         'El usuario no tiene un seguro activo con: ' + response.insurance + ' '
       )
-      conv.scene.next.name = END_CONVERSATION_SCENE
+      conv.scene.next.name = SCENES.endConversation
     }
   } else {
     conv.add('Usuario no registrado ')
@@ -199,12 +202,12 @@ app.handle(HANDLERS.createUser, async (conv) => {
     const insurance = await validateInsurance(userData)
     logJson(insurance)
     if (insurance) {
-      conv.scene.next.name = 'ServiceSelection'
+      conv.scene.next.name = SCENES.selectServiceType
     } else {
       conv.add(
         'El usuario no tiene un seguro activo con: ' + response.insurance + ' '
       )
-      conv.scene.next.name = END_CONVERSATION_SCENE
+      conv.scene.next.name = SCENES.endConversation
     }
   } else {
     conv.add('No fue posible crear el usuario, ')
