@@ -191,7 +191,7 @@ app.handle(HANDLERS.createUser, async (conv) => {
     plate: conv.session.params.plate
   }
   const response = await addUser(userData)
-  logJson(response)
+
   if (response) {
     conv.add('Usuario creado exitosamente! ')
     const insurance = await validateInsurance(userData)
