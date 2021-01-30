@@ -144,16 +144,12 @@ app.handle(HANDLERS.validateUserByEmail, async (conv) => {
   const email = conv.user.params.tokenPayload.email
   const response = await getUserByEmail(email)
   if (response) {
-    conv.add(
-      'El usuario con email: ' + response.email + 'ya está registrado! '
-    )
+    conv.add(`El usuario con email: ${response.email} ya está registrado! `)
     const insurance = await validateInsurance(response)
     if (insurance) {
       conv.scene.next.name = SCENES.selectServiceType
     } else {
-      conv.add(
-        'El usuario no tiene un seguro activo con: ' + response.insurance + ' '
-      )
+      conv.add(`El usuario no tiene un seguro activo con: ${response.insurance} `)
       conv.scene.next.name = SCENES.endConversation
     }
   } else {
@@ -166,16 +162,12 @@ app.handle(HANDLERS.validateUserById, async (conv) => {
   const id = conv.session.params.id
   const response = await getUserById(id)
   if (response) {
-    conv.add(
-      'El usuario con id: ' + response.id + 'ya está registrado! '
-    )
+    conv.add(`El usuario con id: ${response.id} ya está registrado! `)
     const insurance = await validateInsurance(response)
     if (insurance) {
       conv.scene.next.name = SCENES.selectServiceType
     } else {
-      conv.add(
-        'El usuario no tiene un seguro activo con: ' + response.insurance + ' '
-      )
+      conv.add(`El usuario no tiene un seguro activo con: ${response.insurance} `)
       conv.scene.next.name = SCENES.endConversation
     }
   } else {
@@ -207,9 +199,7 @@ app.handle(HANDLERS.createUser, async (conv) => {
     if (insurance) {
       conv.scene.next.name = SCENES.selectServiceType
     } else {
-      conv.add(
-        'El usuario no tiene un seguro activo con: ' + response.insurance + ' '
-      )
+      conv.add(`El usuario no tiene un seguro activo con: ${response.insurance} `)
       conv.scene.next.name = SCENES.endConversation
     }
   } else {
