@@ -4,12 +4,15 @@ const HANDLERS = {
   validateUserByEmail: 'validate_email',
   validateUserById: 'validate_id',
   createReport: 'create_report',
-  selectReporter: 'select_reporter'
+  selectReporter: 'select_reporter',
+  redirectReporter: 'redirect_reporter'
 }
 
 const SCENES = {
   endConversation: 'actions.page.END_CONVERSATION',
-  selectServiceType: 'SelectServiceType'
+  accountLinkingOrigin: 'AccountLinkingOrigin',
+  selectServiceType: 'SelectServiceType',
+  guestReporter: 'GuestReporter'
 }
 
 // Utils
@@ -246,6 +249,19 @@ app.handle(HANDLERS.createReport, async (conv) => {
 app.handle(HANDLERS.selectReporter, conv => {
   const userName = conv.user.params.tokenPayload.given_name
   conv.add(`¿Eres ${userName}?`)
+})
+
+app.handle(HANDLERS.redirectReporter, conv => {
+  const isLocalReporter = conv.scene.slots.is_local_reporter.value
+  let nextScene = SCENES.endConversation
+
+  if (isLocalReporter === 'Sí') {
+    nextScene = SCENES.accountLinkingOrigin
+  } else if (isLocalReporter === 'No') {
+    nextScene = SCENES.guestReporter
+  }
+
+  conv.scene.next.name = nextScene
 })
 
 exports.fulfillment = functions.https.onRequest(app)
