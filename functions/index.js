@@ -12,12 +12,26 @@ const SCENES = {
   endConversation: 'actions.page.END_CONVERSATION',
   accountLinkingOrigin: 'AccountLinkingOrigin',
   selectServiceType: 'SelectServiceType',
-  guestReporter: 'GuestReporter'
+  guestReporter: 'GuestReporter',
+  completeProfile: 'CompleteProfile'
 }
 
 // Utils
-const logJson = (value) =>
+const logJson = (value) => {
   console.log('JSON LOGGED 👀 -->', JSON.stringify(value))
+}
+
+const isInputEquals = (input, match) => {
+  if (Array.isArray(match)) {
+    return match.some(item => {
+      const itemRegex = new RegExp(item, 'i')
+      return itemRegex.test(item)
+    })
+  }
+
+  const matchRegex = new RegExp(match, 'i')
+  return matchRegex.test(input)
+}
 
 const request = require('request-promise')
 
@@ -38,12 +52,13 @@ async function addUser (userData) {
   const emailExist = await getUserByEmail(userData.email)
   const idExist = await getUserById(userData.id)
   if (emailExist || idExist) {
+    console.log('[EMAIL OR ID EXITS]', emailExist, idExist)
     return false
   } else {
     const docRef = db.collection('users').doc()
     try {
       docRef.set({ ...userData })
-      return true
+      return userData
     } catch (error) {
       return false
     }
@@ -144,17 +159,20 @@ app.handle(HANDLERS.validateUserByEmail, async (conv) => {
   const email = conv.user.params.tokenPayload.email
   const response = await getUserByEmail(email)
   if (response) {
-    conv.add(`El usuario con email: ${response.email} ya está registrado! `)
     const insurance = await validateInsurance(response)
     if (insurance) {
       conv.scene.next.name = SCENES.selectServiceType
     } else {
-      conv.add(`El usuario no tiene un seguro activo con: ${response.insurance} `)
+      if (isInputEquals(response.insurance, 'sura')) {
+        conv.add(`El usuario no tiene un seguro activo con ${response.insurance} `)
+      } else {
+        conv.add(`Actualmente no hay soporte para la aseguradora ${response.insurance}`)
+      }
       conv.scene.next.name = SCENES.endConversation
     }
   } else {
-    conv.add('Usuario no registrado ')
-    conv.scene.next.name = 'CompleteProfile'
+    conv.add('Usuario no registrado. ')
+    conv.scene.next.name = SCENES.completeProfile
   }
 })
 
@@ -172,7 +190,8 @@ app.handle(HANDLERS.validateUserById, async (conv) => {
     }
   } else {
     conv.add('Usuario no registrado ')
-    conv.scene.next.name = 'CompleteProfile'
+    console.log(conv, 'ById')
+    conv.scene.next.name = SCENES.completeProfile
   }
 })
 
@@ -191,6 +210,7 @@ app.handle(HANDLERS.createUser, async (conv) => {
     plate: conv.session.params.plate
   }
   const response = await addUser(userData)
+  logJson(response)
 
   if (response) {
     conv.add('Usuario creado exitosamente! ')
@@ -245,9 +265,9 @@ app.handle(HANDLERS.redirectReporter, conv => {
   const isLocalReporter = conv.scene.slots.is_local_reporter.value
   let nextScene = SCENES.endConversation
 
-  if (isLocalReporter === 'Sí') {
+  if (isInputEquals(isLocalReporter, ['si', 'sí'])) {
     nextScene = SCENES.accountLinkingOrigin
-  } else if (isLocalReporter === 'No') {
+  } else if (isInputEquals(isLocalReporter, 'no')) {
     nextScene = SCENES.guestReporter
   }
 
