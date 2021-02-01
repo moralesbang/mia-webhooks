@@ -6,7 +6,8 @@ const HANDLERS = {
   validateUserById: 'validate_id',
   createReport: 'create_report',
   selectReporter: 'select_reporter',
-  redirectReporter: 'redirect_reporter'
+  redirectReporter: 'redirect_reporter',
+  validatePolicyStatus: 'validate_policy_status'
 }
 
 const SCENES = {
@@ -15,7 +16,8 @@ const SCENES = {
   selectServiceType: 'SelectServiceType',
   guestReporter: 'GuestReporter',
   completeProfile: 'CompleteProfile',
-  guestCompleteProfile: 'GuestCompleteProfile'
+  guestCompleteProfile: 'GuestCompleteProfile',
+  makeReport: 'MakeReport'
 }
 
 // Utils
@@ -34,6 +36,23 @@ const isInputEquals = (input, match) => {
   const matchRegex = new RegExp(match, 'i')
   return matchRegex.test(input)
 }
+
+// TODO: Review for delete
+const validatePolicy = conv => async user => {
+  const hasInsurance = await validateInsurance(user)
+  if (hasInsurance) {
+    conv.scene.next.name = SCENES.selectServiceType
+  } else {
+    if (isInputEquals(user.insurance, 'sura')) {
+      conv.add(`El usuario no tiene un seguro activo con ${user.insurance} `)
+    } else {
+      conv.add(`Actualmente no hay soporte para la aseguradora ${user.insurance}`)
+    }
+    conv.scene.next.name = SCENES.endConversation
+  }
+}
+
+const changeScene = conv => sceneName => (conv.scene.next.name = sceneName)
 
 const request = require('request-promise')
 
@@ -158,41 +177,26 @@ async function createReport (reportData) {
 
 // Handlers
 app.handle(HANDLERS.validateUserByEmail, async (conv) => {
-  const email = conv.user.params.tokenPayload.email
-  const response = await getUserByEmail(email)
-  if (response) {
-    const insurance = await validateInsurance(response)
-    if (insurance) {
-      conv.scene.next.name = SCENES.selectServiceType
-    } else {
-      if (isInputEquals(response.insurance, 'sura')) {
-        conv.add(`El usuario no tiene un seguro activo con ${response.insurance} `)
-      } else {
-        conv.add(`Actualmente no hay soporte para la aseguradora ${response.insurance}`)
-      }
-      conv.scene.next.name = SCENES.endConversation
-    }
+  const { email } = conv.user.params.tokenPayload
+  const handleChangeScene = changeScene(conv)
+  const user = await getUserByEmail(email)
+
+  if (user) {
+    handleChangeScene(SCENES.makeReport)
   } else {
-    conv.add('Usuario no registrado. ')
-    conv.scene.next.name = SCENES.completeProfile
+    handleChangeScene(SCENES.completeProfile)
   }
 })
 
 app.handle(HANDLERS.validateUserById, async (conv) => {
-  const id = conv.session.params.id
-  const response = await getUserById(id)
-  if (response) {
-    conv.add(`El usuario con id: ${response.id} ya está registrado! `)
-    const insurance = await validateInsurance(response)
-    if (insurance) {
-      conv.scene.next.name = SCENES.selectServiceType
-    } else {
-      conv.add(`El usuario no tiene un seguro activo con: ${response.insurance} `)
-      conv.scene.next.name = SCENES.endConversation
-    }
+  const { id } = conv.session.params
+  const handleChangeScene = changeScene(conv)
+  const user = await getUserById(id)
+
+  if (user) {
+    handleChangeScene(SCENES.makeReport)
   } else {
-    conv.add('Usuario no registrado. ')
-    conv.scene.next.name = SCENES.guestCompleteProfile
+    handleChangeScene(SCENES.guestCompleteProfile)
   }
 })
 
@@ -211,12 +215,10 @@ app.handle(HANDLERS.createUser, async (conv) => {
     plate: conv.session.params.plate
   }
   const response = await addUser(userData)
-  logJson(response)
 
   if (response) {
     conv.add('Usuario creado exitosamente! ')
     const insurance = await validateInsurance(userData)
-    logJson(insurance)
     if (insurance) {
       conv.scene.next.name = SCENES.selectServiceType
     } else {
@@ -263,7 +265,7 @@ app.handle(HANDLERS.selectReporter, conv => {
 })
 
 app.handle(HANDLERS.redirectReporter, conv => {
-  const isLocalReporter = conv.scene.slots.is_local_reporter.value
+  const { isLocalReporter } = conv.session.params
   let nextScene = SCENES.endConversation
 
   if (isInputEquals(isLocalReporter, ['si', 'sí'])) {
@@ -272,14 +274,16 @@ app.handle(HANDLERS.redirectReporter, conv => {
     nextScene = SCENES.guestReporter
   }
 
-  console.log('SIGUIENTE ESCENA', isLocalReporter, nextScene, isInputEquals(isLocalReporter, ['si', 'sí']))
-
   conv.scene.next.name = nextScene
 })
 
 app.handle(HANDLERS.createGuestUser, conv => {
-  const { name, email, insurance, plate } = conv.session.params
-  logJson(conv.session.params, name, email, insurance, plate)
+  const { name, email, id, insurance, plate } = conv.session.params
+  addUser({ name, email, id, insurance, plate })
+})
+
+app.handle(HANDLERS.validatePolicyStatus, conv => {
+  changeScene(conv)(SCENES.selectServiceType)
 })
 
 exports.fulfillment = functions.https.onRequest(app)
