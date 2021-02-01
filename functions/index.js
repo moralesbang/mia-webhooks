@@ -1,6 +1,7 @@
 // Constants
 const HANDLERS = {
   createUser: 'create_user',
+  createGuestUser: 'create_guest_user',
   validateUserByEmail: 'validate_email',
   validateUserById: 'validate_id',
   createReport: 'create_report',
@@ -13,7 +14,8 @@ const SCENES = {
   accountLinkingOrigin: 'AccountLinkingOrigin',
   selectServiceType: 'SelectServiceType',
   guestReporter: 'GuestReporter',
-  completeProfile: 'CompleteProfile'
+  completeProfile: 'CompleteProfile',
+  guestCompleteProfile: 'GuestCompleteProfile'
 }
 
 // Utils
@@ -25,7 +27,7 @@ const isInputEquals = (input, match) => {
   if (Array.isArray(match)) {
     return match.some(item => {
       const itemRegex = new RegExp(item, 'i')
-      return itemRegex.test(item)
+      return itemRegex.test(input)
     })
   }
 
@@ -189,9 +191,8 @@ app.handle(HANDLERS.validateUserById, async (conv) => {
       conv.scene.next.name = SCENES.endConversation
     }
   } else {
-    conv.add('Usuario no registrado ')
-    console.log(conv, 'ById')
-    conv.scene.next.name = SCENES.completeProfile
+    conv.add('Usuario no registrado. ')
+    conv.scene.next.name = SCENES.guestCompleteProfile
   }
 })
 
@@ -271,7 +272,14 @@ app.handle(HANDLERS.redirectReporter, conv => {
     nextScene = SCENES.guestReporter
   }
 
+  console.log('SIGUIENTE ESCENA', isLocalReporter, nextScene, isInputEquals(isLocalReporter, ['si', 'sí']))
+
   conv.scene.next.name = nextScene
+})
+
+app.handle(HANDLERS.createGuestUser, conv => {
+  const { name, email, insurance, plate } = conv.session.params
+  logJson(conv.session.params, name, email, insurance, plate)
 })
 
 exports.fulfillment = functions.https.onRequest(app)
