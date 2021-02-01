@@ -7,7 +7,9 @@ const HANDLERS = {
   createReport: 'create_report',
   selectReporter: 'select_reporter',
   redirectReporter: 'redirect_reporter',
-  validatePolicyStatus: 'validate_policy_status'
+  validatePolicyStatus: 'validate_policy_status',
+  processServiceType: 'process_service_type',
+  processPeopleStatus: 'process_people_status'
 }
 
 const SCENES = {
@@ -17,7 +19,9 @@ const SCENES = {
   guestReporter: 'GuestReporter',
   completeProfile: 'CompleteProfile',
   guestCompleteProfile: 'GuestCompleteProfile',
-  makeReport: 'MakeReport'
+  makeReport: 'MakeReport',
+  enterPeopleStatus: 'EnterPeopleStatus',
+  enterEventDescription: 'EnterEventDescription'
 }
 
 // Utils
@@ -273,9 +277,61 @@ app.handle(HANDLERS.redirectReporter, conv => {
   conv.scene.next.name = nextScene
 })
 
-app.handle(HANDLERS.validatePolicyStatus, conv => {
+app.handle(HANDLERS.validatePolicyStatus, async conv => {
   const handleChangeScene = changeScene(conv)
-  handleChangeScene(SCENES.selectServiceType)
+  const { id } = conv.session.params
+  const { email } = conv.user.params.tokenPayload
+  let user = null
+
+  if (email) {
+    user = await getUserByEmail(email)
+  } else {
+    user = await getUserById(id)
+  }
+
+  if (isInputEquals(user.insurance, 'sura')) {
+    const hasActivePolicy = await validateInsurance(user)
+    if (hasActivePolicy) {
+      handleChangeScene(SCENES.selectServiceType)
+    } else {
+      conv.add(`El usuario no tiene un seguro activo con ${user.insurance} `)
+      handleChangeScene(SCENES.endConversation)
+    }
+  } else {
+    conv.add(`Actualmente no hay soporte para la aseguradora ${user.insurance}`)
+    handleChangeScene(SCENES.endConversation)
+  }
+})
+
+app.handle(HANDLERS.processServiceType, conv => {
+  const handleChangeScene = changeScene(conv)
+  const { serviceType } = conv.session.params
+
+  if (isInputEquals(
+    serviceType,
+    [
+      'asistentencia de siniestro',
+      'asistentencia en siniestro',
+      'asistentencia siniestro',
+      'siniestro'
+    ]
+  )) {
+    handleChangeScene(SCENES.enterPeopleStatus)
+  } else {
+    handleChangeScene(SCENES.enterEventDescription)
+  }
+})
+
+app.handle(HANDLERS.processPeopleStatus, conv => {
+  const handleChangeScene = changeScene(conv)
+  const { hasWoundedPeople } = conv.session.params
+
+  if (isInputEquals(hasWoundedPeople, ['sí', 'si'])) {
+    // Obtener ubicación
+    // Crear reporte
+  } else {
+    handleChangeScene(SCENES.enterEventDescription)
+  }
 })
 
 exports.fulfillment = functions.https.onRequest(app)
