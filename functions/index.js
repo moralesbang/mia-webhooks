@@ -38,19 +38,19 @@ const isInputEquals = (input, match) => {
 }
 
 // TODO: Review for delete
-const validatePolicy = conv => async user => {
-  const hasInsurance = await validateInsurance(user)
-  if (hasInsurance) {
-    conv.scene.next.name = SCENES.selectServiceType
-  } else {
-    if (isInputEquals(user.insurance, 'sura')) {
-      conv.add(`El usuario no tiene un seguro activo con ${user.insurance} `)
-    } else {
-      conv.add(`Actualmente no hay soporte para la aseguradora ${user.insurance}`)
-    }
-    conv.scene.next.name = SCENES.endConversation
-  }
-}
+// const validatePolicy = conv => async user => {
+//   const hasInsurance = await validateInsurance(user)
+//   if (hasInsurance) {
+//     conv.scene.next.name = SCENES.selectServiceType
+//   } else {
+//     if (isInputEquals(user.insurance, 'sura')) {
+//       conv.add(`El usuario no tiene un seguro activo con ${user.insurance} `)
+//     } else {
+//       conv.add(`Actualmente no hay soporte para la aseguradora ${user.insurance}`)
+//     }
+//     conv.scene.next.name = SCENES.endConversation
+//   }
+// }
 
 const changeScene = conv => sceneName => (conv.scene.next.name = sceneName)
 
@@ -201,33 +201,29 @@ app.handle(HANDLERS.validateUserById, async (conv) => {
 })
 
 app.handle(HANDLERS.createUser, async (conv) => {
-  const email = conv.user.params.tokenPayload.email
-    ? conv.user.params.tokenPayload.email
-    : conv.session.params.email
-  const name = conv.user.params.tokenPayload.name
-    ? conv.user.params.tokenPayload.name
-    : conv.session.params.name
-  const userData = {
-    name,
-    email,
-    id: conv.session.params.id,
-    insurance: conv.session.params.insurance,
-    plate: conv.session.params.plate
-  }
-  const response = await addUser(userData)
+  const handleChangeScene = changeScene(conv)
+  const { id, insurance, plate } = conv.session.params
+  const { email, name } = conv.user.params.tokenPayload
+  const user = await addUser({ name, email, id, insurance, plate })
 
-  if (response) {
-    conv.add('Usuario creado exitosamente! ')
-    const insurance = await validateInsurance(userData)
-    if (insurance) {
-      conv.scene.next.name = SCENES.selectServiceType
-    } else {
-      conv.add(`El usuario no tiene un seguro activo con: ${response.insurance} `)
-      conv.scene.next.name = SCENES.endConversation
-    }
+  if (user) {
+    handleChangeScene(SCENES.makeReport)
   } else {
-    conv.add('No fue posible crear el usuario, ')
-    conv.scene.next.name = 'ErrorScene'
+    conv.add('No fue posible crear el usuario')
+    handleChangeScene(SCENES.endConversation)
+  }
+})
+
+app.handle(HANDLERS.createGuestUser, async conv => {
+  const { name, email, id, insurance, plate } = conv.session.params
+  const user = await addUser({ name, email, id, insurance, plate })
+  const handleChangeScene = changeScene(conv)
+
+  if (user) {
+    handleChangeScene(SCENES.makeReport)
+  } else {
+    conv.add('No fue posible crear el usuario')
+    handleChangeScene(SCENES.endConversation)
   }
 })
 
@@ -260,8 +256,8 @@ app.handle(HANDLERS.createReport, async (conv) => {
 })
 
 app.handle(HANDLERS.selectReporter, conv => {
-  const userName = conv.user.params.tokenPayload.given_name
-  conv.add(`¿Eres ${userName}?`)
+  const { name } = conv.user.params.tokenPayload
+  conv.add(`¿Eres ${name}?`)
 })
 
 app.handle(HANDLERS.redirectReporter, conv => {
@@ -277,13 +273,9 @@ app.handle(HANDLERS.redirectReporter, conv => {
   conv.scene.next.name = nextScene
 })
 
-app.handle(HANDLERS.createGuestUser, conv => {
-  const { name, email, id, insurance, plate } = conv.session.params
-  addUser({ name, email, id, insurance, plate })
-})
-
 app.handle(HANDLERS.validatePolicyStatus, conv => {
-  changeScene(conv)(SCENES.selectServiceType)
+  const handleChangeScene = changeScene(conv)
+  handleChangeScene(SCENES.selectServiceType)
 })
 
 exports.fulfillment = functions.https.onRequest(app)
