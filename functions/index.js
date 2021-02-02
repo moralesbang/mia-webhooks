@@ -236,8 +236,8 @@ app.handle(HANDLERS.createReport, async (conv) => {
     email,
     service_type: serviceType,
     description: eventDescription,
-    latitude: '12.43', // validar procedencia
-    longitude: '-13.54' // validar procedencia
+    latitude: UDEA_COORDINATES.lat,
+    longitude: UDEA_COORDINATES.lon
   }
   const isSuccess = createReport(reportData)
 
