@@ -25,9 +25,9 @@ const SCENES = {
 }
 
 // Utils
-const logJson = (value) => {
-  console.log('JSON LOGGED 👀 -->', JSON.stringify(value))
-}
+// const logJson = (value) => {
+//   console.log('JSON LOGGED 👀 -->', JSON.stringify(value))
+// }
 
 const isInputEquals = (input, match) => {
   if (Array.isArray(match)) {
@@ -77,7 +77,6 @@ async function addUser (userData) {
   const emailExist = await getUserByEmail(userData.email)
   const idExist = await getUserById(userData.id)
   if (emailExist || idExist) {
-    console.log('[EMAIL OR ID EXITS]', emailExist, idExist)
     return false
   } else {
     const docRef = db.collection('users').doc()
@@ -231,29 +230,32 @@ app.handle(HANDLERS.createGuestUser, async conv => {
 })
 
 app.handle(HANDLERS.createReport, async (conv) => {
-  const email = conv.user.params.tokenPayload.email
-    ? conv.user.params.tokenPayload.email
-    : conv.session.params.email
-  // const reportData = {
-  //   email,
-  //   service_type: conv.session.params.service,
-  //   description: conv.session.params.description,
-  //   latitude: conv.device.latitude,
-  //   longitude: conv.device.longitude
-  // }
+  const handleChangeScene = changeScene(conv)
+  const { id } = conv.session.params
+  let user = null
+
+  if (id) {
+    user = await getUserById(id)
+  } else {
+    user = conv.user.params.tokenPayload
+  }
+
+  const { email } = user
+  const { serviceType, eventDescription } = conv.session.params
   const reportData = {
     email,
-    service_type: 'Siniestro', // validar procedencia
-    description: conv.session.params.description,
+    service_type: serviceType,
+    description: eventDescription,
     latitude: '12.43', // validar procedencia
     longitude: '-13.54' // validar procedencia
   }
-  const response = await createReport(reportData)
-  if (response) {
-    conv.add('Reporte creado exitosamente! ')
+  const isSuccess = createReport(reportData)
+
+  if (isSuccess) {
+    conv.add('¡Reporte creado exitosamente! ')
   } else {
-    conv.add('No fue posible crear el reporte, ')
-    conv.scene.next.name = 'ErrorScene'
+    conv.add('¡No se puso crear el reporte!')
+    handleChangeScene(SCENES.endConversation)
   }
 })
 
@@ -287,8 +289,6 @@ app.handle(HANDLERS.validatePolicyStatus, async conv => {
     user = await getUserByEmail(email)
   }
 
-  logJson(user)
-
   if (isInputEquals(user.insurance, 'sura')) {
     const hasActivePolicy = await validateInsurance(user)
     if (hasActivePolicy) {
@@ -310,25 +310,48 @@ app.handle(HANDLERS.processServiceType, conv => {
   if (isInputEquals(
     serviceType,
     [
-      'asistentencia de siniestro',
-      'asistentencia en siniestro',
-      'asistentencia siniestro',
+      'asistencia de siniestro',
+      'asistencia en siniestro',
+      'asistencia siniestro',
       'siniestro'
     ]
   )) {
-    handleChangeScene(SCENES.enterPeopleStatus)
+    handleChangeScene('EnterPeopleStatus')
   } else {
     handleChangeScene(SCENES.enterEventDescription)
   }
 })
 
-app.handle(HANDLERS.processPeopleStatus, conv => {
+app.handle(HANDLERS.processPeopleStatus, async conv => {
   const handleChangeScene = changeScene(conv)
   const { hasWoundedPeople } = conv.session.params
+  const { id } = conv.session.params
+  let user = null
+
+  if (id) {
+    user = await getUserById(id)
+  } else {
+    user = conv.user.params.tokenPayload
+  }
 
   if (isInputEquals(hasWoundedPeople, ['sí', 'si'])) {
-    // Obtener ubicación
-    // Crear reporte
+    const { email } = user
+    const { serviceType, eventDescription } = conv.session.params
+    const reportData = {
+      email,
+      service_type: serviceType,
+      description: eventDescription,
+      latitude: '12.43', // validar procedencia
+      longitude: '-13.54' // validar procedencia
+    }
+    const isSuccess = createReport(reportData)
+
+    if (isSuccess) {
+      conv.add('¡Reporte creado exitosamente! ')
+    } else {
+      conv.add('¡No se puso crear el reporte!')
+      handleChangeScene(SCENES.endConversation)
+    }
   } else {
     handleChangeScene(SCENES.enterEventDescription)
   }
