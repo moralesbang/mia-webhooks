@@ -24,6 +24,11 @@ const SCENES = {
   enterEventDescription: 'EnterEventDescription'
 }
 
+const UDEA_COORDINATES = {
+  lat: '6.268420887121053',
+  lon: '-75.56872703256917'
+}
+
 // Utils
 // const logJson = (value) => {
 //   console.log('JSON LOGGED 👀 -->', JSON.stringify(value))
@@ -40,21 +45,6 @@ const isInputEquals = (input, match) => {
   const matchRegex = new RegExp(match, 'i')
   return matchRegex.test(input)
 }
-
-// TODO: Review for delete
-// const validatePolicy = conv => async user => {
-//   const hasInsurance = await validateInsurance(user)
-//   if (hasInsurance) {
-//     conv.scene.next.name = SCENES.selectServiceType
-//   } else {
-//     if (isInputEquals(user.insurance, 'sura')) {
-//       conv.add(`El usuario no tiene un seguro activo con ${user.insurance} `)
-//     } else {
-//       conv.add(`Actualmente no hay soporte para la aseguradora ${user.insurance}`)
-//     }
-//     conv.scene.next.name = SCENES.endConversation
-//   }
-// }
 
 const changeScene = conv => sceneName => (conv.scene.next.name = sceneName)
 
@@ -341,8 +331,8 @@ app.handle(HANDLERS.processPeopleStatus, async conv => {
       email,
       service_type: serviceType,
       description: eventDescription,
-      latitude: '12.43', // validar procedencia
-      longitude: '-13.54' // validar procedencia
+      latitude: UDEA_COORDINATES.lat,
+      longitude: UDEA_COORDINATES.lon
     }
     const isSuccess = createReport(reportData)
 
