@@ -158,7 +158,6 @@ async function createReport (reportData) {
   const accessToken = await getAccessToken()
   const userData = await getUserByEmail(reportData.email)
   const AccountId = await validateInsurance(userData).userId
-  logJson(AccountId)
   const body = {
     AccountId,
     Description: reportData.description,
@@ -250,7 +249,6 @@ app.handle(HANDLERS.createReport, async (conv) => {
     longitude: '-13.54' // validar procedencia
   }
   const response = await createReport(reportData)
-  logJson(response)
   if (response) {
     conv.add('Reporte creado exitosamente! ')
   } else {
@@ -283,11 +281,13 @@ app.handle(HANDLERS.validatePolicyStatus, async conv => {
   const { email } = conv.user.params.tokenPayload
   let user = null
 
-  if (email) {
-    user = await getUserByEmail(email)
-  } else {
+  if (id) {
     user = await getUserById(id)
+  } else {
+    user = await getUserByEmail(email)
   }
+
+  logJson(user)
 
   if (isInputEquals(user.insurance, 'sura')) {
     const hasActivePolicy = await validateInsurance(user)
